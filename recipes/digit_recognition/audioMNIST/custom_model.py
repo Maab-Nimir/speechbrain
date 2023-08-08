@@ -1,5 +1,11 @@
+import torch
 import torchvision
 import torch.nn as nn
+
+from speechbrain.nnet.CNN import Conv1d
+from speechbrain.nnet.linear import Linear
+from speechbrain.nnet.normalization import BatchNorm1d
+from speechbrain.nnet.pooling import StatisticsPooling
 
 
 class Resnet(nn.Module):
