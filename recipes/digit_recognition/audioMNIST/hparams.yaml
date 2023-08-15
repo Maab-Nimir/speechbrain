@@ -26,11 +26,11 @@ rir_folder: !ref <data_folder>
 
 # Path where data manifest files will be stored
 # The data manifest files are created by the data preparation script.
-train_annotation: train.json
-valid_annotation: valid.json
-test_annotation: test.json
+# train_annotation: train.json
+# valid_annotation: valid.json
+# test_annotation: test.json
 split_ratio: [80, 10, 10]
-skip_prep: False
+skip_prep: true
 
 # The train logger writes training statistics to a file, as well as stdout.
 train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
@@ -43,7 +43,7 @@ error_stats: !name:speechbrain.utils.metric_stats.MetricStats
 ckpt_interval_minutes: 15 # save checkpoint every N min
 
 # Feature parameters
-n_mels: 23
+n_mels: 40
 
 # Training Parameters
 sample_rate: 16000
@@ -51,7 +51,7 @@ number_of_epochs: 35
 batch_size: 16
 lr_start: 0.001
 lr_final: 0.0001
-n_classes: 28 # In this case, we have 28 speakers
+n_classes: 10 # In this case, we have 10 digits
 emb_dim: 512 # dimensionality of the embeddings
 dataloader_options:
     batch_size: !ref <batch_size>
@@ -59,19 +59,19 @@ dataloader_options:
 
 # Added noise and reverb come from OpenRIR dataset, automatically
 # downloaded and prepared with this Environmental Corruption class.
-env_corrupt: !new:speechbrain.lobes.augment.EnvCorrupt
-    openrir_folder: !ref <rir_folder>
-    babble_prob: 0.0
-    reverb_prob: 0.0
-    noise_prob: 1.0
-    noise_snr_low: 0
-    noise_snr_high: 15
+# env_corrupt: !new:speechbrain.lobes.augment.EnvCorrupt
+#     openrir_folder: !ref <rir_folder>
+#     babble_prob: 0.0
+#     reverb_prob: 0.0
+#     noise_prob: 1.0
+#     noise_snr_low: 0
+#     noise_snr_high: 15
 
 # Adds speech change + time and frequency dropouts (time-domain implementation)
 # # A small speed change help to improve the performance of speaker-id as well.
-augmentation: !new:speechbrain.lobes.augment.TimeDomainSpecAugment
-    sample_rate: !ref <sample_rate>
-    speeds: [95, 100, 105]
+# augmentation: !new:speechbrain.lobes.augment.TimeDomainSpecAugment
+#     sample_rate: !ref <sample_rate>
+#     speeds: [95, 100, 105]
 
 # Feature extraction
 compute_features: !new:speechbrain.lobes.features.Fbank
@@ -94,7 +94,7 @@ embedding_model: !new:custom_model.Xvector
     tdnn_dilations: [1, 2, 3, 1, 1]
     lin_neurons: !ref <emb_dim>
 
-classifier: !new:custom_model.resnet
+classifier: !new:custom_model.Resnet
     backbone: resnet18
     input_channels: 4
     num_classes: 10
@@ -109,8 +109,8 @@ epoch_counter: !new:speechbrain.utils.epoch_loop.EpochCounter
 # device, as well as having train()/eval() called on them by the Brain class.
 modules:
     compute_features: !ref <compute_features>
-    env_corrupt: !ref <env_corrupt>
-    augmentation: !ref <augmentation>
+    # env_corrupt: !ref <env_corrupt>
+    # augmentation: !ref <augmentation>
     embedding_model: !ref <embedding_model>
     classifier: !ref <classifier>
     mean_var_norm: !ref <mean_var_norm>

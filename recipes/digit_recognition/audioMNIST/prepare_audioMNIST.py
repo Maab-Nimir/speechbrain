@@ -19,11 +19,11 @@ class AudioMNISTDataset(Dataset):
         return len(self.ds.spectrograms)
 
     def __getitem__(self, index):
-        x = self.ds.spectrograms[index].numpy()
-        if self.transform:
-            x = self.transform(x)
-        else:
-            print("NO data transform applied ...")
+        x = self.ds.audio[index].numpy()
+        # if self.transform:
+        #     x = self.transform(x)
+        # else:
+        #     print("NO data transform applied ...")
 
         y = torch.from_numpy(np.array(self.ds.labels[index]).astype(np.float32))
         return x, y.squeeze(0)

@@ -3,8 +3,10 @@ import sys
 import torch
 import speechbrain as sb
 from hyperpyyaml import load_hyperpyyaml
+from torch.utils.data import random_split
 from prepare_audioMNIST import AudioMNISTDataset
-from mini_librispeech_prepare import prepare_mini_librispeech
+
+# from mini_librispeech_prepare import prepare_mini_librispeech
 
 
 # Brain class for speech enhancement training
@@ -33,8 +35,8 @@ class SpkIdBrain(sb.Brain):
 
         # Compute features, embeddings, and predictions
         feats, lens = self.prepare_features(batch.sig, stage)
-        embeddings = self.modules.embedding_model(feats, lens)
-        predictions = self.modules.classifier(embeddings)
+        # embeddings = self.modules.embedding_model(feats, lens)
+        predictions = self.modules.classifier(feats)
 
         return predictions
 
@@ -176,76 +178,76 @@ class SpkIdBrain(sb.Brain):
             )
 
 
-def dataio_prep(hparams):
-    """This function prepares the datasets to be used in the brain class.
-    It also defines the data processing pipeline through user-defined functions.
-    We expect `prepare_mini_librispeech` to have been called before this,
-    so that the `train.json`, `valid.json`,  and `valid.json` manifest files
-    are available.
+# def dataio_prep(hparams):
+#     """This function prepares the datasets to be used in the brain class.
+#     It also defines the data processing pipeline through user-defined functions.
+#     We expect `prepare_mini_librispeech` to have been called before this,
+#     so that the `train.json`, `valid.json`,  and `valid.json` manifest files
+#     are available.
 
-    Arguments
-    ---------
-    hparams : dict
-        This dictionary is loaded from the `train.yaml` file, and it includes
-        all the hyperparameters needed for dataset construction and loading.
+#     Arguments
+#     ---------
+#     hparams : dict
+#         This dictionary is loaded from the `train.yaml` file, and it includes
+#         all the hyperparameters needed for dataset construction and loading.
 
-    Returns
-    -------
-    datasets : dict
-        Contains two keys, "train" and "valid" that correspond
-        to the appropriate DynamicItemDataset object.
-    """
+#     Returns
+#     -------
+#     datasets : dict
+#         Contains two keys, "train" and "valid" that correspond
+#         to the appropriate DynamicItemDataset object.
+#     """
 
-    # Initialization of the label encoder. The label encoder assigns to each
-    # of the observed label a unique index (e.g, 'spk01': 0, 'spk02': 1, ..)
-    label_encoder = sb.dataio.encoder.CategoricalEncoder()
+#     # Initialization of the label encoder. The label encoder assigns to each
+#     # of the observed label a unique index (e.g, 'spk01': 0, 'spk02': 1, ..)
+#     label_encoder = sb.dataio.encoder.CategoricalEncoder()
 
-    # Define audio pipeline
-    @sb.utils.data_pipeline.takes("wav")
-    @sb.utils.data_pipeline.provides("sig")
-    def audio_pipeline(wav):
-        """Load the signal, and pass it and its length to the corruption class.
-        This is done on the CPU in the `collate_fn`."""
-        sig = sb.dataio.dataio.read_audio(wav)
-        return sig
+#     # Define audio pipeline
+#     @sb.utils.data_pipeline.takes("wav")
+#     @sb.utils.data_pipeline.provides("sig")
+#     def audio_pipeline(wav):
+#         """Load the signal, and pass it and its length to the corruption class.
+#         This is done on the CPU in the `collate_fn`."""
+#         sig = sb.dataio.dataio.read_audio(wav)
+#         return sig
 
-    # Define label pipeline:
-    @sb.utils.data_pipeline.takes("spk_id")
-    @sb.utils.data_pipeline.provides("spk_id", "spk_id_encoded")
-    def label_pipeline(spk_id):
-        """Defines the pipeline to process the input speaker label."""
-        yield spk_id
-        spk_id_encoded = label_encoder.encode_label_torch(spk_id)
-        yield spk_id_encoded
+#     # Define label pipeline:
+#     @sb.utils.data_pipeline.takes("spk_id")
+#     @sb.utils.data_pipeline.provides("spk_id", "spk_id_encoded")
+#     def label_pipeline(spk_id):
+#         """Defines the pipeline to process the input speaker label."""
+#         yield spk_id
+#         spk_id_encoded = label_encoder.encode_label_torch(spk_id)
+#         yield spk_id_encoded
 
-    # Define datasets. We also connect the dataset with the data processing
-    # functions defined above.
-    datasets = {}
-    data_info = {
-        "train": hparams["train_annotation"],
-        "valid": hparams["valid_annotation"],
-        "test": hparams["test_annotation"],
-    }
-    hparams["dataloader_options"]["shuffle"] = False
-    for dataset in data_info:
-        datasets[dataset] = sb.dataio.dataset.DynamicItemDataset.from_json(
-            json_path=data_info[dataset],
-            replacements={"data_root": hparams["data_folder"]},
-            dynamic_items=[audio_pipeline, label_pipeline],
-            output_keys=["id", "sig", "spk_id_encoded"],
-        )
+#     # Define datasets. We also connect the dataset with the data processing
+#     # functions defined above.
+#     datasets = {}
+#     data_info = {
+#         "train": hparams["train_annotation"],
+#         "valid": hparams["valid_annotation"],
+#         "test": hparams["test_annotation"],
+#     }
+#     hparams["dataloader_options"]["shuffle"] = False
+#     for dataset in data_info:
+#         datasets[dataset] = sb.dataio.dataset.DynamicItemDataset.from_json(
+#             json_path=data_info[dataset],
+#             replacements={"data_root": hparams["data_folder"]},
+#             dynamic_items=[audio_pipeline, label_pipeline],
+#             output_keys=["id", "sig", "spk_id_encoded"],
+#         )
 
-    # Load or compute the label encoder (with multi-GPU DDP support)
-    # Please, take a look into the lab_enc_file to see the label to index
-    # mapping.
-    lab_enc_file = os.path.join(hparams["save_folder"], "label_encoder.txt")
-    label_encoder.load_or_create(
-        path=lab_enc_file,
-        from_didatasets=[datasets["train"]],
-        output_key="spk_id",
-    )
+#     # Load or compute the label encoder (with multi-GPU DDP support)
+#     # Please, take a look into the lab_enc_file to see the label to index
+#     # mapping.
+#     lab_enc_file = os.path.join(hparams["save_folder"], "label_encoder.txt")
+#     label_encoder.load_or_create(
+#         path=lab_enc_file,
+#         from_didatasets=[datasets["train"]],
+#         output_key="spk_id",
+#     )
 
-    return datasets
+#     return datasets
 
 
 # Recipe begins!
@@ -268,20 +270,37 @@ if __name__ == "__main__":
     )
 
     # Data preparation, to be run on only one process.
-    if not hparams["skip_prep"]:
-        sb.utils.distributed.run_on_main(
-            prepare_mini_librispeech,
-            kwargs={
-                "data_folder": hparams["data_folder"],
-                "save_json_train": hparams["train_annotation"],
-                "save_json_valid": hparams["valid_annotation"],
-                "save_json_test": hparams["test_annotation"],
-                "split_ratio": hparams["split_ratio"],
-            },
-        )
+    # if not hparams["skip_prep"]:
+    #     sb.utils.distributed.run_on_main(
+    #         prepare_mini_librispeech,
+    #         kwargs={
+    #             "data_folder": hparams["data_folder"],
+    #             "save_json_train": hparams["train_annotation"],
+    #             "save_json_valid": hparams["valid_annotation"],
+    #             "save_json_test": hparams["test_annotation"],
+    #             "split_ratio": hparams["split_ratio"],
+    #         },
+    #     )
 
     # Create dataset objects "train", "valid", and "test".
-    datasets = dataio_prep(hparams)
+    dataset = AudioMNISTDataset()
+
+    dataset_size = len(dataset)
+    train_size = int(dataset_size * 0.8)
+    valid_size = int(dataset_size * 0.1)
+    test_size = int(dataset_size * 0.1)
+
+    datasplits = random_split(
+        dataset,
+        [train_size, valid_size, test_size],
+        generator=torch.Generator().manual_seed(hparams["seed"]),
+    )
+    datasets = {"train": datasplits[0], "valid": datasplits[1], "test": datasplits[2]}
+
+    print("train data size: ", len(datasets["train"]))
+    print("valid data size: ", len(datasets["valid"]))
+    print("test data size: ", len(datasets["test"]))
+    # datasets = AudioMNISTDataset()
 
     # Initialize the Brain object to prepare for mask training.
     spk_id_brain = SpkIdBrain(

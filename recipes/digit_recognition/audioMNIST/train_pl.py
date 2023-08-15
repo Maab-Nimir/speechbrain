@@ -31,8 +31,6 @@ class ResNetModule(pl.LightningModule):
 
         self.loss = nn.CrossEntropyLoss()
         self.accuracy = Accuracy(task="multiclass", num_classes=num_classes)
-        # self.max_accuracy = 0.0
-        # self.define_metrics()
 
         # to save hyper-parameters to self.hparams (auto-logged by W&B)
         self.save_hyperparameters()
