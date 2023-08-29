@@ -18,19 +18,19 @@ __set_seed: !!python/object/apply:torch.manual_seed [!ref <seed>]
 # 4- Set data_folder with the local path.
 # Reading data from the local disk of the compute node (e.g. $SLURM_TMPDIR with SLURM-based clusters) is very important.
 # It allows you to read the data much faster without slowing down the shared filesystem.
-data_folder: ./data
-output_folder: !ref ./results/audioMNIST/<seed>
+data_folder: /home/mila/m/maab.elrashid/warmup_project/speechbrain/recipes/digit_recognition/audioMNIST/free-spoken-digit-dataset/recordings
+output_folder: !ref ./results/speaker_id/<seed>
 save_folder: !ref <output_folder>/save
 train_log: !ref <output_folder>/train_log.txt
 rir_folder: !ref <data_folder>
 
 # Path where data manifest files will be stored
 # The data manifest files are created by the data preparation script.
-# train_annotation: train.json
-# valid_annotation: valid.json
-# test_annotation: test.json
+train_annotation: train.json
+valid_annotation: valid.json
+test_annotation: test.json
 split_ratio: [80, 10, 10]
-skip_prep: true
+skip_prep: False
 
 # The train logger writes training statistics to a file, as well as stdout.
 train_logger: !new:speechbrain.utils.train_logger.FileTrainLogger
@@ -46,12 +46,12 @@ ckpt_interval_minutes: 15 # save checkpoint every N min
 n_mels: 40
 
 # Training Parameters
-sample_rate: 16000
+sample_rate: 8000
 number_of_epochs: 35
 batch_size: 16
 lr_start: 0.001
 lr_final: 0.0001
-n_classes: 10 # In this case, we have 10 digits
+n_classes: 10 # In this case, we have 28 speakers
 emb_dim: 512 # dimensionality of the embeddings
 dataloader_options:
     batch_size: !ref <batch_size>
@@ -59,19 +59,19 @@ dataloader_options:
 
 # Added noise and reverb come from OpenRIR dataset, automatically
 # downloaded and prepared with this Environmental Corruption class.
-# env_corrupt: !new:speechbrain.lobes.augment.EnvCorrupt
-#     openrir_folder: !ref <rir_folder>
-#     babble_prob: 0.0
-#     reverb_prob: 0.0
-#     noise_prob: 1.0
-#     noise_snr_low: 0
-#     noise_snr_high: 15
+env_corrupt: !new:speechbrain.lobes.augment.EnvCorrupt
+    openrir_folder: !ref <rir_folder>
+    babble_prob: 0.0
+    reverb_prob: 0.0
+    noise_prob: 1.0
+    noise_snr_low: 0
+    noise_snr_high: 15
 
 # Adds speech change + time and frequency dropouts (time-domain implementation)
 # # A small speed change help to improve the performance of speaker-id as well.
-# augmentation: !new:speechbrain.lobes.augment.TimeDomainSpecAugment
-#     sample_rate: !ref <sample_rate>
-#     speeds: [95, 100, 105]
+augmentation: !new:speechbrain.lobes.augment.TimeDomainSpecAugment
+    sample_rate: !ref <sample_rate>
+    speeds: [95, 100, 105]
 
 # Feature extraction
 compute_features: !new:speechbrain.lobes.features.Fbank
@@ -94,10 +94,12 @@ embedding_model: !new:custom_model.Xvector
     tdnn_dilations: [1, 2, 3, 1, 1]
     lin_neurons: !ref <emb_dim>
 
-classifier: !new:custom_model.Resnet
-    backbone: resnet18
-    input_channels: 4
-    num_classes: 10
+classifier: !new:custom_model.Classifier
+    input_shape: [null, null, !ref <emb_dim>]
+    activation: !name:torch.nn.LeakyReLU
+    lin_blocks: 1
+    lin_neurons: !ref <emb_dim>
+    out_neurons: !ref <n_classes>
 
 # The first object passed to the Brain class is this "Epoch Counter"
 # which is saved by the Checkpointer so that training can be resumed

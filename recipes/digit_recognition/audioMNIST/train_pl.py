@@ -1,16 +1,19 @@
 import torch
+import torchaudio
 from torch import nn, optim
 from torch.utils.data import random_split, DataLoader
 from torchmetrics import Accuracy, MetricCollection
+from speechbrain.dataio.dataloader import SaveableDataLoader
+from speechbrain.dataio.batch import PaddedBatch
 
 import pytorch_lightning as pl
+import numpy as np
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
     LearningRateMonitor,
 )
 from pytorch_lightning.loggers import WandbLogger
-
 import wandb
 
 from prepare_audioMNIST import AudioMNISTDataset
@@ -19,10 +22,28 @@ from custom_model import Resnet
 seed = 42
 pl.seed_everything(seed)
 
+backbone = "resnet18"
+input_channels = 1
+num_classes = 10
+batch_size = 16
+num_workers = 4
+
+SAMPLE_RATE = 8000
+NUM_SAMPLES = 8000
+AUDIO_DIR = "/home/mila/m/maab.elrashid/scratch/audio_mnist/free-spoken-digit-dataset/recordings"
+mel_spectrogram = torchaudio.transforms.MelSpectrogram(
+    sample_rate=SAMPLE_RATE,
+    n_fft=1024,
+    hop_length=512,
+    n_mels=40,
+)
+
 
 # define the model
 class ResNetModule(pl.LightningModule):
-    def __init__(self, backbone="resnet18", input_channels=4, num_classes=10):
+    def __init__(
+        self, backbone=backbone, input_channels=input_channels, num_classes=num_classes
+    ):
         super().__init__()
         self.model = Resnet(
             backbone=backbone, input_channels=input_channels, num_classes=num_classes
@@ -53,21 +74,14 @@ class ResNetModule(pl.LightningModule):
     def validation_step(self, batch, batch_idx):
         preds, y, loss, acc = self.get_preds_loss_accuracy(batch)
         self.log("valid_loss_epoch", loss, on_step=False, on_epoch=True)
-        # self.log("valid_acc", acc, on_step=False, on_epoch=True)
         self.log("valid_acc_step", acc, on_step=True, on_epoch=False)
+        print("model val preds : ", preds)
+        print("val ground truth labels : ", y)
         self.accuracy.update(preds, y)
 
-        # return acc
-
     def on_validation_epoch_end(self):
-        # self.accuracy.compute()
         self.log("valid_acc_epoch", self.accuracy.compute())
         self.accuracy.reset()
-
-    # def validation_epoch_end(self, valid_outputs):
-    #     for acc in valid_outputs:
-    #         if acc > self.max_accuracy:
-    #             self.max_accuracy = acc
 
     def get_preds_loss_accuracy(self, batch):
         """convenience function since train/valid steps are similar"""
@@ -80,11 +94,10 @@ class ResNetModule(pl.LightningModule):
         return preds, y, loss, acc
 
 
-audiomnist_classes = 10
-backbone = "resnet18"
-input_channels = 4
 model = ResNetModule(
-    backbone=backbone, input_channels=input_channels, num_classes=audiomnist_classes
+    backbone=backbone,
+    input_channels=input_channels,
+    num_classes=num_classes,
 )
 
 
@@ -92,8 +105,12 @@ model = ResNetModule(
 class AudioMNISTDataModule(pl.LightningDataModule):
     def __init__(
         self,
-        batch_size=16,
-        num_workers=4,
+        AUDIO_DIR,
+        mel_spectrogram,
+        SAMPLE_RATE,
+        NUM_SAMPLES,
+        batch_size=batch_size,
+        num_workers=num_workers,
     ):
         super().__init__()
         """
@@ -101,7 +118,9 @@ class AudioMNISTDataModule(pl.LightningDataModule):
         """
         self.num_workers = num_workers
         self.batch_size = batch_size
-        dataset = AudioMNISTDataset()
+        dataset = AudioMNISTDataset(
+            AUDIO_DIR, mel_spectrogram, SAMPLE_RATE, NUM_SAMPLES
+        )
 
         dataset_size = len(dataset)
         train_size = int(dataset_size * 0.8)
@@ -120,30 +139,40 @@ class AudioMNISTDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         train_dataloader = DataLoader(
-            self.train_data, batch_size=self.batch_size, num_workers=self.num_workers
+            self.train_data,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
         )
         return train_dataloader
 
     def val_dataloader(self):
         valid_dataloader = DataLoader(
-            self.valid_data, batch_size=self.batch_size, num_workers=self.num_workers
+            self.valid_data,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
         )
         return valid_dataloader
 
 
-audio_mnist = AudioMNISTDataModule()
+audio_mnist = AudioMNISTDataModule(
+    AUDIO_DIR,
+    mel_spectrogram,
+    SAMPLE_RATE,
+    NUM_SAMPLES,
+)
 
 # set the wandb logger
 wandb_logger = WandbLogger(
     entity="dl-eoct",
     project="sb-warmupproject",
-    name="vanilla-resnet18",
+    name="resnet18",
 )
 checkpoint_callback = ModelCheckpoint(
     dirpath="/home/mila/m/maab.elrashid/scratch/warmup_project",
     filename="resnet18" + "{epoch}-{valid_acc_epoch:.2f}",
     save_top_k=1,
     monitor="valid_acc_epoch",
+    mode="max",
 )
 
 trainer = pl.Trainer(
@@ -158,7 +187,5 @@ trainer = pl.Trainer(
 )
 
 trainer.fit(model, audio_mnist)
-
-# print(f"Highest valid accuracy: {model.max_accuracy:.4f}")
 
 wandb.finish()
