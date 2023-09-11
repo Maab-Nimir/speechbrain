@@ -1,0 +1,1 @@
+{"lr-Adam": 0.001, "trainer/global_step": 6449, "_timestamp": 1694475149.9548278, "_runtime": 239.34491872787476, "_step": 214, "valid_loss_epoch": 0.8116690516471863, "valid_acc_epoch": 0.7534722089767456, "epoch": 42, "train_loss_epoch": 0.15913771092891693, "train_acc_epoch": 0.9416666626930237, "_wandb": {"runtime": 238}}

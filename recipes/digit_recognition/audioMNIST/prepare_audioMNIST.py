@@ -1,17 +1,14 @@
-import torch
 import torchaudio
 import os
+import torch
 from torch.utils.data import Dataset
-
-# import hub
+import torch.nn.functional as F
 
 
 class AudioMNISTDataset(Dataset):
-    def __init__(self, AUDIO_DIR, transform, signal_sample_rate, num_samples):
+    def __init__(self, AUDIO_DIR, transform):
         super().__init__()
         self.AUDIO_DIR = AUDIO_DIR
-        self.signal_sample_rate = signal_sample_rate
-        self.num_samples = num_samples
         self.filenames = os.listdir(self.AUDIO_DIR)
         self.transform = transform
 
@@ -25,63 +22,30 @@ class AudioMNISTDataset(Dataset):
             signal, sr = torchaudio.load(f)
             # signal --> Tensor --> (1, num_samples)
             y = int(filename[0])
-
-        # signal = self.resample_if_necessary(signal, sr) # to make all the samples with the same sample rate
-        # signal = self.mix_down_if_necessary(signal) # to make all the signals to be mono (with 1 channel)
-
-        signal = self.cut_if_necessary(
-            signal
-        )  # cut if the signal has more samples than what we have defined
-        signal = self.right_pad_if_necessary(signal)
-
-        # print("signal shape before mel_spectrogram = ", signal.shape)
-        signal = self.transform(signal)
-        return signal, y
-
-    def cut_if_necessary(self, signal):
-        if signal.shape[1] > self.num_samples:
-            signal = signal[:, : self.num_samples]
-        return signal
-
-    def right_pad_if_necessary(self, signal):
-        signal_length = signal.shape[1]
-        if signal_length < self.num_samples:
-            pad_length = self.num_samples - signal_length
-            signal = torch.nn.functional.pad(signal, (0, pad_length))
-        return signal
-
-    def resample_if_necessary(self, signal, sr):
-        if sr != self.signal_sample_rate:
-            resampler = torchaudio.transforms.Resample(sr, self.target_sr)
-            signal = resampler(signal)
-        return signal
-
-    def mix_down_if_necessary(self, signal):
-        if signal.shape[0] > 1:
-            signal = torch.mean(signal, dim=0, keepdim=True)
-        return signal
+        signal = self.transform(signal)  # apply mel_spectrogram transform
+        return signal.squeeze(0), y
 
 
-# class AudioMNISTDataset(Dataset):
-#     def __init__(self):
-#         super().__init__()
-#         self.ds = hub.load("hub://activeloop/spoken_mnist")
-#         self.transform = torchvision.transforms.Compose(
-#             [
-#                 torchvision.transforms.ToTensor(),
-#             ]
-#         )
+def pad_collate(batch):
+    (xx, yy) = zip(*batch)
 
-#     def __len__(self):
-#         return len(self.ds.spectrograms)
+    # calculate the max length in the batch
+    max_length = 0
+    for x in xx:
+        if x.shape[1] > max_length:
+            max_length = x.shape[1]
 
-#     def __getitem__(self, index):
-#         x = self.ds.audio[index].numpy()
-#         # x = self.ds.spectrograms[index].numpy()
-#         if self.transform:
-#             x = self.transform(x)
-#         else:
-#             print("NO data transform applied ...")
+    # right pad the batch sequences with the max length in the batch
+    new_xx = []
+    for x in xx:
+        # print("x shape before padding ", x.shape, "max_length = ", max_length)
+        if x.shape[1] < max_length:
+            right_padding = max_length - x.shape[1]
+            x = F.pad(input=x, pad=(0, right_padding, 0, 0), mode="constant", value=0)
+        x = x.unsqueeze(0)  # 1 input channel --> [1, mel_size, batch_max_length]
+        # print("x shape after padding ", x.shape)
+        new_xx.append(x)
+    # new_xx = tuple(new_xx)
+    new_xx = torch.stack(new_xx, dim=0)
 
-#         y = torch.from_numpy(np.array(self.ds.labels[index]).astype(np.float32))
-#         return x, y.squeeze(0)
+    return new_xx, torch.tensor(yy)

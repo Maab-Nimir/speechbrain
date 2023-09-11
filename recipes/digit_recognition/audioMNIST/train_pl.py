@@ -2,12 +2,10 @@ import torch
 import torchaudio
 from torch import nn, optim
 from torch.utils.data import random_split, DataLoader
-from torchmetrics import Accuracy, MetricCollection
-from speechbrain.dataio.dataloader import SaveableDataLoader
-from speechbrain.dataio.batch import PaddedBatch
+from torchmetrics import Accuracy
+import numpy as np
 
 import pytorch_lightning as pl
-import numpy as np
 from pytorch_lightning.callbacks import (
     EarlyStopping,
     ModelCheckpoint,
@@ -16,7 +14,7 @@ from pytorch_lightning.callbacks import (
 from pytorch_lightning.loggers import WandbLogger
 import wandb
 
-from prepare_audioMNIST import AudioMNISTDataset
+from prepare_audioMNIST import AudioMNISTDataset, pad_collate
 from custom_model import Resnet
 
 seed = 42
@@ -29,7 +27,6 @@ batch_size = 16
 num_workers = 4
 
 SAMPLE_RATE = 8000
-NUM_SAMPLES = 8000
 AUDIO_DIR = "/home/mila/m/maab.elrashid/scratch/audio_mnist/free-spoken-digit-dataset/recordings"
 mel_spectrogram = torchaudio.transforms.MelSpectrogram(
     sample_rate=SAMPLE_RATE,
@@ -66,15 +63,15 @@ class ResNetModule(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         preds, y, loss, acc = self.get_preds_loss_accuracy(batch)
 
-        self.log("train_loss_epoch", loss, on_step=False, on_epoch=True)
-        self.log("train_acc_epoch", acc, on_step=False, on_epoch=True)
+        self.log("train_loss", loss, on_step=False, on_epoch=True)
+        self.log("train_acc", acc, on_step=False, on_epoch=True)
 
         return loss
 
     def validation_step(self, batch, batch_idx):
         preds, y, loss, acc = self.get_preds_loss_accuracy(batch)
-        self.log("valid_loss_epoch", loss, on_step=False, on_epoch=True)
-        self.log("valid_acc_step", acc, on_step=True, on_epoch=False)
+        self.log("valid_loss", loss, on_step=False, on_epoch=True)
+        self.log("valid_acc", acc, on_step=False, on_epoch=True)
         print("model val preds : ", preds)
         print("val ground truth labels : ", y)
         self.accuracy.update(preds, y)
@@ -86,7 +83,6 @@ class ResNetModule(pl.LightningModule):
     def get_preds_loss_accuracy(self, batch):
         """convenience function since train/valid steps are similar"""
         x, y = batch
-        y = y.type(torch.LongTensor).to(x.device)
         logits = self.forward(x)
         preds = torch.argmax(logits, dim=1)
         loss = self.loss(logits, y)
@@ -107,8 +103,6 @@ class AudioMNISTDataModule(pl.LightningDataModule):
         self,
         AUDIO_DIR,
         mel_spectrogram,
-        SAMPLE_RATE,
-        NUM_SAMPLES,
         batch_size=batch_size,
         num_workers=num_workers,
     ):
@@ -118,9 +112,7 @@ class AudioMNISTDataModule(pl.LightningDataModule):
         """
         self.num_workers = num_workers
         self.batch_size = batch_size
-        dataset = AudioMNISTDataset(
-            AUDIO_DIR, mel_spectrogram, SAMPLE_RATE, NUM_SAMPLES
-        )
+        dataset = AudioMNISTDataset(AUDIO_DIR, mel_spectrogram)
 
         dataset_size = len(dataset)
         train_size = int(dataset_size * 0.8)
@@ -142,6 +134,9 @@ class AudioMNISTDataModule(pl.LightningDataModule):
             self.train_data,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            shuffle=True,
+            collate_fn=pad_collate,
+            drop_last=True,
         )
         return train_dataloader
 
@@ -150,6 +145,9 @@ class AudioMNISTDataModule(pl.LightningDataModule):
             self.valid_data,
             batch_size=self.batch_size,
             num_workers=self.num_workers,
+            shuffle=False,
+            collate_fn=pad_collate,
+            drop_last=True,
         )
         return valid_dataloader
 
@@ -157,8 +155,6 @@ class AudioMNISTDataModule(pl.LightningDataModule):
 audio_mnist = AudioMNISTDataModule(
     AUDIO_DIR,
     mel_spectrogram,
-    SAMPLE_RATE,
-    NUM_SAMPLES,
 )
 
 # set the wandb logger
@@ -168,7 +164,7 @@ wandb_logger = WandbLogger(
     name="resnet18",
 )
 checkpoint_callback = ModelCheckpoint(
-    dirpath="/home/mila/m/maab.elrashid/scratch/warmup_project",
+    dirpath="/home/mila/m/maab.elrashid/scratch/warmup_project/FSDDtest/",
     filename="resnet18" + "{epoch}-{valid_acc_epoch:.2f}",
     save_top_k=1,
     monitor="valid_acc_epoch",

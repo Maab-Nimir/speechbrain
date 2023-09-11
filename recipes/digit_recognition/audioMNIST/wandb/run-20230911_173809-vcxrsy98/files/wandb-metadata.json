@@ -1,0 +1,245 @@
+{
+    "os": "Linux-4.15.0-194-generic-x86_64-with-glibc2.27",
+    "python": "3.9.12",
+    "heartbeatAt": "2023-09-11T21:38:10.218127",
+    "startedAt": "2023-09-11T21:38:09.349092",
+    "docker": null,
+    "cuda": "10.2.89",
+    "args": [],
+    "state": "running",
+    "program": "/home/mila/m/maab.elrashid/warmup_project/speechbrain/recipes/digit_recognition/audioMNIST/train_pl.py",
+    "codePath": "recipes/digit_recognition/audioMNIST/train_pl.py",
+    "git": {
+        "remote": "https://github.com/Maab-Nimir/speechbrain.git",
+        "commit": "38749af501a7b96534f6ccc7e43c229f76c3d530"
+    },
+    "email": "mnimir@aimsammi.org",
+    "root": "/home/mila/m/maab.elrashid/warmup_project/speechbrain",
+    "host": "cn-b002",
+    "username": "maab.elrashid",
+    "executable": "/home/mila/m/maab.elrashid/.conda/envs/eoct-env/bin/python",
+    "cpu_count": 40,
+    "cpu_count_logical": 40,
+    "cpu_freq": {
+        "current": 1.5564249999999995,
+        "min": 800.0,
+        "max": 3900.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3.469,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3.127,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3.433,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 3.425,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.799,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.82,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.453,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.799,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.064,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.853,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.636,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.444,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.606,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.621,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.559,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.602,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.955,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.591,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.654,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.224,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 2.511,
+            "min": 800.0,
+            "max": 3900.0
+        }
+    ],
+    "disk": {
+        "total": 1754.8885498046875,
+        "used": 81.95738220214844
+    },
+    "gpu": "Tesla V100-SXM2-32GB",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "Tesla V100-SXM2-32GB",
+            "memory_total": 34359738368
+        }
+    ],
+    "memory": {
+        "total": 377.57287216186523
+    }
+}
